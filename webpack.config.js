@@ -5,13 +5,14 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 // 压缩CSS
 const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin');
 const commonCssLoader = [
-  {
-    // 取代style-loader,将原本用style-loader生成插入到页面style标签样式抽离出来成独立的文件
-    loader: MiniCssExtractPlugin.loader,
-    options: {
-      publicPath: '/'
-    }
-  },
+  // {
+  //   // 取代style-loader,将原本用style-loader生成插入到页面style标签样式抽离出来成独立的文件
+  //   loader: MiniCssExtractPlugin.loader,
+  //   options: {
+  //     publicPath: '/'
+  //   }
+  // },
+  'style-loader',
   'css-loader',
   // CSS兼容各大浏览器和添加对应的前缀,需要再package.json中配置规则
   {
@@ -41,79 +42,83 @@ module.exports =
     },
     module: {
       rules: [
-        // css
         {
-          test: /\.css$/,
-          use: [...commonCssLoader]
-        },
-        // sass
-        {
-          test: /\.scss$/,
-          exclude: /node_modules/,
-          use: [
-            ...commonCssLoader,
-            'sass-loader'
-          ]
-        },
-        // 打包除了.html/.css/.js文件结尾的其他文件(主要针对字体图标)
-        {
-          exclude: /\.(css|js|html|png|jpg|gif|less|scss)$/,
-          loader: 'file-loader',
-          options: {
-            name: '[hash:10].[ext]',
-            outputPath: 'static/font'
-          }
-        },
-        // 处理html中的img(采用commonJS规范),与HtmlWebpackPlugin不相兼容，舍弃，html中的img标签引用本地图片时需要<%= require('url') %>引入，网络图片正常引入即可
-        // {
-        //   test: /\.html$/,
-        //   loader: 'html-loader'
-        // },
-         // url
-        {
-          test: /\.(png|jpg|gif)$/,
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                limit: 8192,
-                name: '[hash:10].[ext]',
-                outputPath: 'static/images',
-                // 不使用html-loader解析.html文件中的img标签是需要开启，页面的图片需要require引入
-                esModule: false
-              }
-            }
-          ]
-        },
-        // ES6 => ES5(基本转换,诸如箭头函数,const,let等)
-        {
-          test: /\.js$/,
-          exclude: /node_modules/,
-          loader: 'babel-loader',
-          options: {
-            "presets": [
-              [
-                '@babel/preset-env',
+          // oneOf类似react-router-dom中的Switch,如果同一个文件由两个以上loader匹配则需要将其中一个提取到oneOf外面
+          oneOf: [
+          // css
+          {
+            test: /\.css$/,
+            use: [...commonCssLoader]
+          },
+          // sass
+          {
+            test: /\.scss$/,
+            exclude: /node_modules/,
+            use: [
+              ...commonCssLoader,
+              'sass-loader'
+            ]
+          },   
+          // 处理html中的img(采用commonJS规范),与HtmlWebpackPlugin不相兼容，舍弃，html中的img标签引用本地图片时需要<%= require('url') %>引入
+          // url
+          {
+            test: /\.(png|jpg|gif)$/,
+            use: [
               {
-                // 按需做兼容处理加载
-                "useBuiltIns": "usage",
-                // 指定core-js版本
-                "corejs": {
-                  version: 3
-                },
-                // 指定兼容到那个浏览器版本
-                "targets": {
-                  chrome: '60',
-                  firefox: '60',
-                  ie: '9',
-                  safari: '10',
-                  edge: '17' 
+                loader: 'url-loader',
+                options: {
+                  limit: 8192,
+                  name: '[hash:10].[ext]',
+                  outputPath: 'static/images',
+                  // 不使用html-loader解析.html文件中的img标签是需要开启，页面的图片需要require引入
+                  esModule: false
                 }
               }
-              ]
             ]
+          },
+          // ES6 => ES5(基本转换,诸如箭头函数,const,let等)
+          {
+            test: /\.js$/,
+            exclude: /node_modules/,
+            loader: 'babel-loader',
+            options: {
+              "presets": [
+                [
+                  '@babel/preset-env',
+                {
+                  // 按需做兼容处理加载
+                  "useBuiltIns": "usage",
+                  // 指定core-js版本
+                  "corejs": {
+                    version: 3
+                  },
+                  // 指定兼容到那个浏览器版本
+                  "targets": {
+                    chrome: '60',
+                    firefox: '60',
+                    ie: '9',
+                    safari: '10',
+                    edge: '17' 
+                  }
+                }
+                ]
+              ],
+              // babel缓存
+              cacheDirectory: true
+            }
+          },
+          // 打包除了.html/.css/.js文件结尾的其他文件(主要针对字体图标)
+          {
+            exclude: /\.(css|js|html|png|jpg|gif|less|scss)$/,
+            loader: 'file-loader',
+            options: {
+              name: '[hash:10].[ext]',
+              outputPath: 'static/font'
+            }
           }
+          ]
         }
+
       ]
     },
     plugins: [
@@ -173,7 +178,21 @@ module.exports =
       compress: true,
       port: 9000,
       open: true,
+      // 开启CSS文件的HMR功能(模块热更新);只有是使用了style-loader才有自带这个功能,生产环境还是要采用抽离CSS样式文件的方式
+      hot: true,
+      // 开启JS文件的HMR功能,需要再对应的JS文件中添加if(module.hot) { module.hot.accept() }才能同步实现修改JS文件刷新浏览器
+      hotOnly:true,
+      
       // 指定从哪个页面打开，默认打开index.html页面，其值默认等于HtmlWebpackPlugin中的filename值
-      index: 'user.html'
+      index: 'index.html'
+    },
+    // 将第三方(node_modules)文件打包成一个独立的JS文件，如果是公共依赖，只会生成一个
+    optimization: {
+      splitChunks: {
+        chunks: 'all'
+      }
     }
+    // 开启开发环境下代码调试功能
+    // value: 'source-map 错误代码信息和源代码的错误位置'
+    // devtool: 'source-map',
   }
