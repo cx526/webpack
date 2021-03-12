@@ -171,12 +171,12 @@ module.exports =
       new OptimizeCssAssetsWebpackPlugin()
     ],
     mode: 'development',
-    // 启动本地服务器npm webpack-dev-server -D
+    // 启动本地服务器 cnpm install webpack-dev-server -g
     devServer: {
       // 指定那个文件夹开启本地服务
       contentBase: resolve(__dirname, 'dist'),
       compress: true,
-      port: 9000,
+      port: 8080,
       open: true,
       // 开启CSS文件的HMR功能(模块热更新);只有是使用了style-loader才有自带这个功能,生产环境还是要采用抽离CSS样式文件的方式
       hot: true,
